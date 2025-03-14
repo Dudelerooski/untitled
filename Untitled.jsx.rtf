@@ -1,0 +1,143 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2821
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 import \{ useState, useEffect \} from "react";\
+import \{ LineChart, Line, YAxis, Tooltip, PieChart, Pie, Cell \} from "recharts";\
+import \{ Home \} from "lucide-react";\
+\
+export default function GymTracker() \{\
+  const [log, setLog] = useState([]);\
+  const [weightEntries, setWeightEntries] = useState([]);\
+  const [showInput, setShowInput] = useState(false);\
+  const [selectedWorkouts, setSelectedWorkouts] = useState([]);\
+  const [weight, setWeight] = useState("");\
+  const [view, setView] = useState("workouts");\
+  const [showAll, setShowAll] = useState(false);\
+  \
+  const muscleGroups = ["Chest", "Tris", "Back", "Bis", "Legs", "Calves", "Shoulders", "Abs", "Forearms", "Cardio", "Surf", "Rest Day"];\
+  const COLORS = ["#008000", "#FF0000"];\
+\
+  useEffect(() => \{\
+    const storedLog = JSON.parse(localStorage.getItem("workoutLog")) || [];\
+    const storedWeights = JSON.parse(localStorage.getItem("weightEntries")) || [];\
+    setLog(storedLog);\
+    setWeightEntries(storedWeights);\
+  \}, []);\
+\
+  const addEntry = () => \{\
+    const date = new Date().toISOString().split("T")[0];\
+    const updatedLog = log.filter(entry => entry.date !== date);\
+    updatedLog.push(\{ date, workout: selectedWorkouts \});\
+    if (updatedLog.length > 30) updatedLog.shift(); // Keep only the last 30 workouts\
+    setLog(updatedLog);\
+    localStorage.setItem("workoutLog", JSON.stringify(updatedLog));\
+    setSelectedWorkouts([]);\
+    setShowInput(false);\
+  \};\
+\
+  const addWeight = () => \{\
+    if (!weight) return;\
+    const date = new Date().toISOString().split("T")[0];\
+    const updatedWeights = [...weightEntries, \{ date, weight: parseFloat(weight) \}];\
+    setWeightEntries(updatedWeights);\
+    localStorage.setItem("weightEntries", JSON.stringify(updatedWeights));\
+    setWeight("");\
+  \};\
+\
+  const workoutSummary = muscleGroups.map(group => (\{\
+    name: group,\
+    count: log.filter(entry => entry.workout.includes(group)).length,\
+  \}));\
+\
+  const onVsRestData = [\
+    \{ name: "Workout Days", value: log.filter(entry => !entry.workout.includes("Rest Day")).length \},\
+    \{ name: "Rest Days", value: log.filter(entry => entry.workout.includes("Rest Day")).length \},\
+  ];\
+\
+  const weightData = weightEntries.map(entry => (\{\
+    date: entry.date,\
+    weight: entry.weight,\
+  \}));\
+\
+  return (\
+    <div className="p-6 max-w-lg mx-auto bg-black text-purple-300 rounded-lg shadow-md min-h-screen relative">\
+      \{showAll ? (\
+        <div>\
+          <button onClick=\{() => setShowAll(false)\} className="text-purple-400 underline mb-4">back</button>\
+          <h2 className="text-xl font-semibold text-center">All Workouts</h2>\
+          <div className="grid grid-cols-5 gap-2 p-3 bg-gray-900 rounded-md">\
+            \{log.map((entry, index) => (\
+              <div key=\{index\} className="p-2 text-xs bg-purple-500 text-black rounded text-center">\
+                \{entry.date.split("-").slice(1).join("-")\}<br />\
+                \{entry.workout.join(", ") || "Rest Day"\}\
+              </div>\
+            ))\}\
+          </div>\
+        </div>\
+      ) : view === "workouts" ? (\
+        <>\
+          <h1 className="text-2xl font-bold mb-4 text-center">Gym Tracker</h1>\
+          <h2 className="text-xl font-semibold text-center">Last 30 Workouts</h2>\
+          <button onClick=\{() => setShowAll(true)\} className="absolute top-6 right-6 text-purple-400 underline">see all</button>\
+          <div className="grid grid-cols-5 gap-2 p-3 bg-gray-900 rounded-md">\
+            \{log.slice(-30).map((entry, index) => (\
+              <div key=\{index\} className="p-2 text-xs bg-purple-500 text-black rounded text-center">\
+                \{entry.date.split("-").slice(1).join("-")\}<br />\
+                \{entry.workout.join(", ") || "Rest Day"\}\
+              </div>\
+            ))\}\
+          </div>\
+          \{showInput && (\
+            <div className="mt-2 p-4 bg-gray-800 rounded">\
+              <h3 className="text-lg font-semibold">Select Workouts</h3>\
+              <div className="grid grid-cols-2 gap-2 mt-2">\
+                \{muscleGroups.map((group) => (\
+                  <label key=\{group\} className="flex items-center space-x-2">\
+                    <input type="checkbox" checked=\{selectedWorkouts.includes(group)\} onChange=\{() => setSelectedWorkouts(prev => prev.includes(group) ? prev.filter(g => g !== group) : [...prev, group])\} className="form-checkbox text-purple-500" />\
+                    <span>\{group\}</span>\
+                  </label>\
+                ))\}\
+              </div>\
+              <button onClick=\{addEntry\} className="mt-4 p-2 w-full bg-purple-500 text-black rounded">ENTER</button>\
+            </div>\
+          )\}\
+          <button onClick=\{() => setShowInput(!showInput)\} className="fixed bottom-20 left-1/2 transform -translate-x-1/2 p-2 w-40 bg-purple-500 text-black rounded uppercase">LOG WORKOUT</button>\
+        </>\
+      ) : view === "summary" ? (\
+        <div>\
+          <h2 className="text-xl font-bold text-center">Workout Summary</h2>\
+          <PieChart width=\{250\} height=\{250\} className="mx-auto">\
+            <Pie data=\{onVsRestData\} dataKey="value" outerRadius=\{100\} fill="#8884d8">\
+              \{onVsRestData.map((entry, index) => (\
+                <Cell key=\{`cell-$\{index\}`\} fill=\{COLORS[index]\} />\
+              ))\}\
+            </Pie>\
+          </PieChart>\
+          <ul className="mt-4 text-center">\
+            \{workoutSummary.map((item, index) => (\
+              <li key=\{index\}>\{item.name\}: \{item.count\}</li>\
+            ))\}\
+          </ul>\
+        </div>\
+      ) : (\
+        <div>\
+          <h2 className="text-xl font-bold text-center">Weight Tracker</h2>\
+          <LineChart width=\{300\} height=\{200\} data=\{weightData\} className="mx-auto">\
+            <YAxis />\
+            <Tooltip />\
+            <Line type="monotone" dataKey="weight" stroke="#8884d8" strokeWidth=\{3\} />\
+          </LineChart>\
+          <div className="mt-4 p-4 bg-gray-800 rounded">\
+            <input type="number" value=\{weight\} onChange=\{(e) => setWeight(e.target.value)\} className="p-2 w-full rounded text-black" placeholder="Enter weight" />\
+            <button onClick=\{addWeight\} className="mt-2 p-2 w-full bg-purple-500 text-black rounded">ENTER</button>\
+          </div>\
+        </div>\
+      )\}\
+    </div>\
+  );\
+\}\
+}
